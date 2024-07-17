@@ -149,6 +149,19 @@
         let history = [];
         let chart;
 
+        function loadHistory() {
+            const savedHistory = localStorage.getItem('fuelCalculatorHistory');
+            if (savedHistory) {
+                history = JSON.parse(savedHistory);
+                updateHistory();
+                updateChart();
+            }
+        }
+
+        function saveHistory() {
+            localStorage.setItem('fuelCalculatorHistory', JSON.stringify(history));
+        }
+
         function calculate() {
             const efficiency = parseFloat(document.getElementById('efficiency').value);
             const efficiencyUnit = document.getElementById('efficiencyUnit').value;
@@ -187,15 +200,16 @@
             document.getElementById('fuelCost').textContent = `Fuel Cost: ${fuelCost.toFixed(2)} ${currency}`;
             document.getElementById('co2Emissions').textContent = `CO2 Emissions: ${co2Emissions.toFixed(2)} kg`;
 
-            // Add to history
             history.push({
                 date: new Date().toLocaleString(),
                 fuelConsumed: fuelConsumed.toFixed(2),
                 fuelCost: fuelCost.toFixed(2),
                 co2Emissions: co2Emissions.toFixed(2)
             });
+
             updateHistory();
             updateChart();
+            saveHistory();
         }
 
         function updateHistory() {
@@ -263,6 +277,8 @@
             document.getElementById('comparisonResult').textContent = 
                 `${moreEfficient} is ${Math.abs(difference)}% more fuel efficient.`;
         }
+
+        window.onload = loadHistory;
     </script>
 </body>
 </html>
