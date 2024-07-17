@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #222;
+            color: white;
+            flex-direction: column;
+        }
+
+        .container {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        input, select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        #historyContainer {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #compareContainer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .compareColumn {
+            width: 48%;
+        }
+
+        #chartContainer {
+            margin-top: 20px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fuel Calculator</h1>
+        <label for="efficiency">Fuel Efficiency</label>
+        <input type="number" id="efficiency" placeholder="Fuel Efficiency">
+        <select id="efficiencyUnit">
+            <option value="mpg">miles per US gallon</option>
+            <option value="kpl">kilometers per liter</option>
+        </select>
+
+        <label for="distance">Distance</label>
+        <input type="number" id="distance" placeholder="Distance">
+        <select id="distanceUnit">
+            <option value="miles">miles</option>
+            <option value="kilometers">kilometers</option>
+        </select>
+
+        <label for="price">Fuel Price</label>
+        <input type="number" id="price" placeholder="Fuel Price">
+        <select id="priceUnit">
+            <option value="per_us_gallon">per US gallon</option>
+            <option value="per_liter">per liter</option>
+        </select>
+
+        <label for="currency">Currency</label>
+        <select id="currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+        </select>
+
+        <button onclick="calculate()">Calculate</button>
+
+        <div class="result">
+            <p id="fuelConsumed">Fuel Consumed: 0</p>
+            <p id="fuelCost">Fuel Cost: 0</p>
+            <p id="co2Emissions">CO2 Emissions: 0</p>
+        </div>
+
+        <div id="chartContainer">
+            <canvas id="resultsChart"></canvas>
+        </div>
+
+        <h2>History</h2>
+        <div id="historyContainer"></div>
+
+        <h2>Compare Vehicles</h2>
+        <div id="compareContainer">
+            <div class="compareColumn">
+                <input type="number" id="efficiency1" placeholder="Efficiency 1">
+                <select id="efficiencyUnit1">
+                    <option value="mpg">miles per US gallon</option>
+                    <option value="kpl">kilometers per liter</option>
+                </select>
+            </div>
+            <div class="compareColumn">
+                <input type="number" id="efficiency2" placeholder="Efficiency 2">
+                <select id="efficiencyUnit2">
+                    <option value="mpg">miles per US gallon</option>
+                    <option value="kpl">kilometers per liter</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="compareVehicles()">Compare</button>
+        <p id="comparisonResult"></p>
+    </div>
+
+    <script>
+        let history = [];
+        let chart;
+
+        function calculate() {
+            const efficiency = parseFloat(document.getElementById('efficiency').value);
+            const efficiencyUnit = document.getElementById('efficiencyUnit').value;
+            const distance = parseFloat(document.getElementById('distance').value);
+            const distanceUnit = document.getElementById('distanceUnit').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const priceUnit = document.getElementById('priceUnit').value;
+            const currency = document.getElementById('currency').value;
+
+            let efficiencyInKPL;
+            if (efficiencyUnit === 'mpg') {
+                efficiencyInKPL = efficiency * 0.425144;
+            } else {
+                efficiencyInKPL = efficiency;
+            }
+
+            let distanceInKM;
+            if (distanceUnit === 'miles') {
+                distanceInKM = distance * 1.60934;
+            } else {
+                distanceInKM = distance;
+            }
+
+            let pricePerLiter;
+            if (priceUnit === 'per_us_gallon') {
+                pricePerLiter = price / 3.78541;
+            } else {
+                pricePerLiter = price;
+            }
+
+            const fuelConsumed = distanceInKM / efficiencyInKPL;
+            const fuelCost = fuelConsumed * pricePerLiter;
+            const co2Emissions = fuelConsumed * 2.31; // Approximate CO2 emissions in kg per liter of gasoline
+
+            document.getElementById('fuelConsumed').textContent = `Fuel Consumed: ${fuelConsumed.toFixed(2)} liters`;
+            document.getElementById('fuelCost').textContent = `Fuel Cost: ${fuelCost.toFixed(2)} ${currency}`;
+            document.getElementById('co2Emissions').textContent = `CO2 Emissions: ${co2Emissions.toFixed(2)} kg`;
+
+            // Add to history
+            history.push({
+                date: new Date().toLocaleString(),
+                fuelConsumed: fuelConsumed.toFixed(2),
+                fuelCost: fuelCost.toFixed(2),
+                co2Emissions: co2Emissions.toFixed(2)
+            });
+            updateHistory();
+            updateChart();
+        }
+
+        function updateHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '';
+            history.forEach((item, index) => {
+                historyContainer.innerHTML += `
+                    <p>
+                        ${item.date}: 
+                        Fuel: ${item.fuelConsumed}L, 
+                        Cost: ${item.fuelCost}, 
+                        CO2: ${item.co2Emissions}kg
+                    </p>
+                `;
+            });
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: history.map(item => item.date),
+                    datasets: [{
+                        label: 'Fuel Consumed (L)',
+                        data: history.map(item => parseFloat(item.fuelConsumed)),
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'CO2 Emissions (kg)',
+                        data: history.map(item => parseFloat(item.co2Emissions)),
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function compareVehicles() {
+            const efficiency1 = parseFloat(document.getElementById('efficiency1').value);
+            const efficiencyUnit1 = document.getElementById('efficiencyUnit1').value;
+            const efficiency2 = parseFloat(document.getElementById('efficiency2').value);
+            const efficiencyUnit2 = document.getElementById('efficiencyUnit2').value;
+
+            let efficiencyInKPL1 = efficiencyUnit1 === 'mpg' ? efficiency1 * 0.425144 : efficiency1;
+            let efficiencyInKPL2 = efficiencyUnit2 === 'mpg' ? efficiency2 * 0.425144 : efficiency2;
+
+            const difference = ((efficiencyInKPL2 - efficiencyInKPL1) / efficiencyInKPL1 * 100).toFixed(2);
+            const moreEfficient = difference > 0 ? 'Vehicle 2' : 'Vehicle 1';
+
+            document.getElementById('comparisonResult').textContent = 
+                `${moreEfficient} is ${Math.abs(difference)}% more fuel efficient.`;
+        }
+    </script>
+</body>
+</html>
